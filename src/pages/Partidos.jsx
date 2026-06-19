@@ -225,9 +225,9 @@ export default function Partidos() {
       </div>
 
       <div className="card">
-        <div className="card-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="card-title"><Calendar size={18} /> Partidos</span>
+        <div className="card-header" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <span className="card-title"><Calendar size={16} /> Partidos</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             {jornadas.length > 0 && (
               <select
                 className="form-select"
@@ -235,14 +235,14 @@ export default function Partidos() {
                 value={jornada}
                 onChange={e => setJornada(e.target.value)}
               >
-                <option value="todas">Todas las jornadas</option>
-                {jornadas.map(j => <option key={j} value={j}>Jornada {j}</option>)}
+                <option value="todas">Todas</option>
+                {jornadas.map(j => <option key={j} value={j}>J{j}</option>)}
               </select>
             )}
+            <button className="btn btn-primary btn-sm" onClick={() => setModal('new')}>
+              <Plus size={14} /> Nuevo
+            </button>
           </div>
-          <button className="btn btn-primary" onClick={() => setModal('new')}>
-            <Plus size={16} /> Nuevo partido
-          </button>
         </div>
 
         {loading ? (
@@ -254,60 +254,52 @@ export default function Partidos() {
             <p className="empty-sub">Crea el primer partido para comenzar</p>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>J</th>
-                  <th>Fecha</th>
-                  <th>Partido</th>
-                  <th>Resultado</th>
-                  <th>Estado</th>
-                  <th style={{ width: 120 }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtrados.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--gray-400)' }}>{p.jornada}</td>
-                    <td style={{ color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{fmt(p.fecha)}</td>
-                    <td>
-                      <strong>{p.equipo_local}</strong>
-                      <span style={{ color: 'var(--gray-400)', margin: '0 8px' }}>vs</span>
-                      <strong>{p.equipo_visitante}</strong>
-                    </td>
-                    <td>
-                      {p.goles_local !== null ? (
-                        <span style={{ fontWeight: 800, fontSize: 16 }}>
-                          {p.goles_local} - {p.goles_visitante}
-                        </span>
-                      ) : <span style={{ color: 'var(--gray-300)' }}>—</span>}
-                    </td>
-                    <td>
-                      {p.estado === 'finalizado'
-                        ? <span className="badge badge-done"><CheckCircle size={11} /> Finalizado</span>
-                        : <span className="badge badge-pending"><Clock size={11} /> Pendiente</span>
-                      }
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {p.estado === 'pendiente' && (
-                          <button className="btn btn-success btn-sm" onClick={() => setResultadoModal(p)} title="Ingresar resultado">
-                            <CheckCircle size={13} />
-                          </button>
-                        )}
-                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setModal(p)} title="Editar">
-                          <Pencil size={13} />
-                        </button>
-                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p)} title="Eliminar">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="list-cards">
+            {filtrados.map(p => (
+              <div key={p.id} className="list-card">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Partido */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{p.equipo_local}</span>
+                    {p.goles_local !== null ? (
+                      <span style={{
+                        background: 'var(--gray-50)', border: '1px solid var(--gray-200)',
+                        borderRadius: 6, padding: '2px 10px', fontWeight: 800, fontSize: 15
+                      }}>
+                        {p.goles_local} - {p.goles_visitante}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--gray-300)', fontWeight: 700 }}>vs</span>
+                    )}
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{p.equipo_visitante}</span>
+                  </div>
+                  {/* Meta */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>J{p.jornada}</span>
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>·</span>
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{fmt(p.fecha)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>·</span>
+                    {p.estado === 'finalizado'
+                      ? <span className="badge badge-done" style={{ fontSize: 11 }}><CheckCircle size={10} /> Finalizado</span>
+                      : <span className="badge badge-pending" style={{ fontSize: 11 }}><Clock size={10} /> Pendiente</span>
+                    }
+                  </div>
+                </div>
+                <div className="list-card-actions">
+                  {p.estado === 'pendiente' && (
+                    <button className="btn btn-success btn-sm btn-icon" onClick={() => setResultadoModal(p)} title="Ingresar resultado">
+                      <CheckCircle size={14} />
+                    </button>
+                  )}
+                  <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setModal(p)} title="Editar">
+                    <Pencil size={14} />
+                  </button>
+                  <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

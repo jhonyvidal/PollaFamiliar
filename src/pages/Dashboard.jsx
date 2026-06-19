@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, calcularPuntos } from '../lib/supabase'
-import { Trophy, Medal } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function getInitials(nombre) {
@@ -30,11 +30,9 @@ export default function Dashboard() {
     const todosPartidos = partidos ?? []
     const todosProns = prons ?? []
 
-    // Calcular ranking
     const rank = participantes.map(p => {
       const misProns = todosProns.filter(pr => pr.participante_id === p.id)
       let pts = 0, exactos = 0, tendencias = 0, errores = 0
-
       misProns.forEach(pr => {
         const partido = todosPartidos.find(pa => pa.id === pr.partido_id)
         if (!partido || partido.estado !== 'finalizado') return
@@ -44,7 +42,6 @@ export default function Dashboard() {
         else if (puntos === 1) tendencias++
         else errores++
       })
-
       return { ...p, pts, exactos, tendencias, errores, pronTotal: misProns.length }
     }).sort((a, b) => b.pts - a.pts || b.exactos - a.exactos)
 
@@ -76,30 +73,31 @@ export default function Dashboard() {
         <div className="stat-card">
           <div className="stat-label">Participantes</div>
           <div className="stat-value">{stats.participantes}</div>
-          <div className="stat-sub"><Link to="/participantes" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Ver todos →</Link></div>
+          <div className="stat-sub"><Link to="/participantes" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Ver →</Link></div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Partidos jugados</div>
+          <div className="stat-label">Jugados</div>
           <div className="stat-value">{stats.finalizados}</div>
-          <div className="stat-sub">de {stats.partidos} programados</div>
+          <div className="stat-sub">de {stats.partidos}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Pronósticos</div>
+          <div className="stat-label">Pronóst.</div>
           <div className="stat-value">{stats.pronosticos}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Líder</div>
-          <div className="stat-value" style={{ fontSize: 18, marginTop: 8 }}>
+          <div className="stat-value" style={{ fontSize: 16, marginTop: 6 }}>
             {ranking[0] ? ranking[0].nombre.split(' ')[0] : '—'}
           </div>
           <div className="stat-sub">{ranking[0] ? `${ranking[0].pts} pts` : ''}</div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'start' }}>
+      {/* Layout: lado a lado en desktop, apilado en mobile */}
+      <div className="dashboard-grid">
         <div className="card">
           <div className="card-header">
-            <span className="card-title"><Trophy size={18} /> Tabla de posiciones</span>
+            <span className="card-title"><Trophy size={16} /> Tabla de posiciones</span>
           </div>
           {ranking.length === 0 ? (
             <div className="empty-state">
@@ -112,13 +110,12 @@ export default function Dashboard() {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 50 }}>#</th>
+                    <th style={{ width: 44 }}>#</th>
                     <th>Participante</th>
                     <th style={{ textAlign: 'center' }}>Pts</th>
-                    <th style={{ textAlign: 'center' }}>⭐ Exactos</th>
-                    <th style={{ textAlign: 'center' }}>✓ Tendencia</th>
-                    <th style={{ textAlign: 'center' }}>✗ Error</th>
-                    <th style={{ textAlign: 'center' }}>Pronóst.</th>
+                    <th style={{ textAlign: 'center' }} className="hide-mobile">⭐ Exactos</th>
+                    <th style={{ textAlign: 'center' }} className="hide-mobile">✓ Tend.</th>
+                    <th style={{ textAlign: 'center' }} className="hide-mobile">✗ Error</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -128,7 +125,13 @@ export default function Dashboard() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div className="avatar" style={{ background: p.avatar_color }}>{getInitials(p.nombre)}</div>
-                          <strong style={{ fontSize: 15 }}>{p.nombre}</strong>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{p.nombre}</div>
+                            {/* En mobile: mostrar desglose bajo el nombre */}
+                            <div className="show-mobile" style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 1 }}>
+                              ⭐{p.exactos} · ✓{p.tendencias} · ✗{p.errores}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -136,10 +139,9 @@ export default function Dashboard() {
                           {p.pts}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center', color: '#854d0e', fontWeight: 700 }}>{p.exactos}</td>
-                      <td style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{p.tendencias}</td>
-                      <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 600 }}>{p.errores}</td>
-                      <td style={{ textAlign: 'center', color: 'var(--gray-400)' }}>{p.pronTotal}</td>
+                      <td style={{ textAlign: 'center', color: '#854d0e', fontWeight: 700 }} className="hide-mobile">{p.exactos}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }} className="hide-mobile">{p.tendencias}</td>
+                      <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 600 }} className="hide-mobile">{p.errores}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -149,21 +151,21 @@ export default function Dashboard() {
         </div>
 
         {ultimosPartidos.length > 0 && (
-          <div className="card" style={{ minWidth: 260 }}>
+          <div className="card dashboard-side">
             <div className="card-header">
               <span className="card-title">Últimos resultados</span>
             </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {ultimosPartidos.map(p => (
                 <div key={p.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  display: 'flex', alignItems: 'center',
                   padding: '10px 0', borderBottom: '1px solid var(--gray-100)',
-                  gap: 12
+                  gap: 10
                 }}>
                   <div style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>{p.equipo_local}</div>
                   <div style={{
                     background: 'var(--gray-50)', border: '1px solid var(--gray-200)',
-                    borderRadius: 6, padding: '4px 10px', fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap'
+                    borderRadius: 6, padding: '4px 10px', fontWeight: 800, fontSize: 14, whiteSpace: 'nowrap'
                   }}>
                     {p.goles_local} - {p.goles_visitante}
                   </div>
@@ -174,6 +176,23 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .show-mobile { display: none; }
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 1fr 260px;
+          gap: 20px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .dashboard-grid { grid-template-columns: 1fr; }
+          .dashboard-side { order: -1; }
+        }
+        @media (max-width: 640px) {
+          .show-mobile { display: block; }
+        }
+      `}</style>
     </>
   )
 }

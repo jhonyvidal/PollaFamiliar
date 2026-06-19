@@ -86,33 +86,36 @@ export default function Visor() {
 
       {/* Podio */}
       {participantesOrdenados.length >= 1 && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+        <div className="podio-grid" style={{ marginBottom: 20 }}>
           {participantesOrdenados.slice(0, 3).map((p, i) => {
             const r = rankingMap[p.id]
             const medals = ['🥇', '🥈', '🥉']
+            const colors = ['#f59e0b', '#9ca3af', '#f97316']
             return (
               <div key={p.id} className="card" style={{
-                flex: 1, minWidth: 160, padding: '20px 16px', textAlign: 'center',
-                borderTop: `3px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : '#f97316'}`
+                padding: '16px 12px', textAlign: 'center',
+                borderTop: `3px solid ${colors[i]}`
               }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>{medals[i]}</div>
-                <div className="avatar" style={{ background: p.avatar_color, margin: '0 auto 8px' }}>
+                <div style={{ fontSize: 24, marginBottom: 6 }}>{medals[i]}</div>
+                <div className="avatar" style={{ background: p.avatar_color, margin: '0 auto 6px' }}>
                   {getInitials(p.nombre)}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.nombre}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)', marginTop: 4 }}>{r.pts}</div>
-                <div style={{ fontSize: 12, color: 'var(--gray-400)' }}>puntos</div>
+                <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.nombre}
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>{r.pts}</div>
+                <div style={{ fontSize: 11, color: 'var(--gray-400)' }}>pts</div>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Filtro */}
+      {/* Filtro jornadas */}
       {jornadas.length > 1 && (
-        <div style={{ marginBottom: 20, display: 'flex', gap: 8 }}>
+        <div style={{ marginBottom: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
-            className={`btn ${jornada === 'todas' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm ${jornada === 'todas' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setJornada('todas')}
           >
             Todas
@@ -120,7 +123,7 @@ export default function Visor() {
           {jornadas.map(j => (
             <button
               key={j}
-              className={`btn ${jornada === String(j) ? 'btn-primary' : 'btn-secondary'}`}
+              className={`btn btn-sm ${jornada === String(j) ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setJornada(String(j))}
             >
               J{j}

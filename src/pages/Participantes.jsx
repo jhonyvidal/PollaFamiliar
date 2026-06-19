@@ -138,45 +138,31 @@ export default function Participantes() {
             <p className="empty-sub">Agrega el primero para comenzar</p>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Participante</th>
-                  <th>Email</th>
-                  <th>Ingresó</th>
-                  <th style={{ width: 100 }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {participantes.map(p => (
-                  <tr key={p.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="avatar" style={{ background: p.avatar_color }}>
-                          {getInitials(p.nombre)}
-                        </div>
-                        <strong>{p.nombre}</strong>
-                      </div>
-                    </td>
-                    <td style={{ color: 'var(--gray-400)' }}>{p.email || '—'}</td>
-                    <td style={{ color: 'var(--gray-400)' }}>
-                      {new Date(p.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setModal(p)} title="Editar">
-                          <Pencil size={14} />
-                        </button>
-                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p)} title="Eliminar">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="list-cards">
+            {participantes.map(p => (
+              <div key={p.id} className="list-card">
+                <div className="avatar avatar-lg" style={{ background: p.avatar_color }}>
+                  {getInitials(p.nombre)}
+                </div>
+                <div className="list-card-main">
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{p.nombre}</div>
+                  {p.email && (
+                    <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 2 }}>{p.email}</div>
+                  )}
+                  <div style={{ fontSize: 11, color: 'var(--gray-300)', marginTop: 2 }}>
+                    Desde {new Date(p.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+                <div className="list-card-actions">
+                  <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setModal(p)} title="Editar">
+                    <Pencil size={14} />
+                  </button>
+                  <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

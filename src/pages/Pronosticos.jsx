@@ -107,17 +107,18 @@ export default function Pronosticos() {
         <div className="loading-center"><div className="spinner" /><span>Cargando...</span></div>
       ) : (
         <>
-          <div className="card" style={{ marginBottom: 24 }}>
-            <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <label className="form-label" style={{ marginBottom: 6, display: 'block' }}>Participante</label>
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Fila 1: selects */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 180px' }}>
+                  <label className="form-label" style={{ marginBottom: 4, display: 'block' }}>Participante</label>
                   <select
                     className="form-select"
                     value={selectedPart}
                     onChange={e => setSelectedPart(e.target.value)}
                   >
-                    <option value="">— Seleccionar participante —</option>
+                    <option value="">— Seleccionar —</option>
                     {participantes.map(p => (
                       <option key={p.id} value={p.id}>{p.nombre}</option>
                     ))}
@@ -125,35 +126,38 @@ export default function Pronosticos() {
                 </div>
 
                 {jornadas.length > 1 && (
-                  <div style={{ minWidth: 160 }}>
-                    <label className="form-label" style={{ marginBottom: 6, display: 'block' }}>Jornada</label>
+                  <div style={{ flex: '0 1 130px' }}>
+                    <label className="form-label" style={{ marginBottom: 4, display: 'block' }}>Jornada</label>
                     <select
                       className="form-select"
                       value={jornadaFiltro}
                       onChange={e => setJornadaFiltro(e.target.value)}
                     >
                       <option value="todas">Todas</option>
-                      {jornadas.map(j => <option key={j} value={j}>Jornada {j}</option>)}
+                      {jornadas.map(j => <option key={j} value={j}>J{j}</option>)}
                     </select>
                   </div>
                 )}
-
-                {selectedPart && (
-                  <div style={{ display: 'flex', gap: 24, marginLeft: 'auto', alignItems: 'center' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase' }}>Pronósticos</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gray-800)' }}>{completados}/{partidos.length}</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase' }}>Puntos</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)' }}>{totalPts}</div>
-                    </div>
-                    <button className="btn btn-primary" onClick={handleSave} disabled={saving || !selectedPart}>
-                      {saving ? 'Guardando...' : <><Save size={15} /> Guardar</>}
-                    </button>
-                  </div>
-                )}
               </div>
+
+              {/* Fila 2: stats + guardar (solo cuando hay selección) */}
+              {selectedPart && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase' }}>Pronóst.</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--gray-800)' }}>{completados}/{partidos.length}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase' }}>Puntos</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{totalPts}</div>
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Guardando...' : <><Save size={15} /> Guardar</>}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
