@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, calcularPuntos } from '../lib/supabase'
-import { BarChart2, CheckCircle, Clock } from 'lucide-react'
+import { BarChart2, CheckCircle, Clock, Star } from 'lucide-react'
 
 function getInitials(nombre) {
   return nombre.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -25,19 +25,28 @@ export default function Visor() {
   const [participantes, setParticipantes] = useState([])
   const [partidos, setPartidos] = useState([])
   const [pronosticos, setPronosticos] = useState([])
+  const [eventosExtra, setEventosExtra] = useState([])
   const [loading, setLoading] = useState(true)
   const [jornada, setJornada] = useState('todas')
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: parts }, { data: pars }, { data: prons }] = await Promise.all([
+    const [{ data: parts }, { data: pars }, { data: prons }, { data: evs }, { data: gans }] = await Promise.all([
       supabase.from('participantes').select('*').order('nombre'),
       supabase.from('partidos').select('*').order('fecha'),
       supabase.from('pronosticos').select('*'),
+      supabase.from('eventos_extra').select('*').order('fecha'),
+      supabase.from('evento_ganadores').select('evento_id, participante_id'),
     ])
     setParticipantes(parts ?? [])
     setPartidos(pars ?? [])
     setPronosticos(prons ?? [])
+    setEventosExtra(
+      (evs ?? []).map(ev => ({
+        ...ev,
+        ganadores: (gans ?? []).filter(g => g.evento_id === ev.id).map(g => g.participante_id),
+      }))
+    )
     setLoading(false)
   }, [])
 
@@ -57,7 +66,11 @@ export default function Visor() {
         if (puntos === 3) exactos++
         if (puntos === 1) tendencias++
       })
-    rankingMap[p.id] = { pts, exactos, tendencias }
+    const ptsExtra = eventosExtra
+      .filter(ev => ev.ganadores.includes(p.id))
+      .reduce((sum, ev) => sum + ev.puntos, 0)
+    pts += ptsExtra
+    rankingMap[p.id] = { pts, exactos, tendencias, ptsExtra }
   })
 
   const participantesOrdenados = [...participantes].sort((a, b) => {
@@ -216,6 +229,43 @@ export default function Visor() {
                     })}
                   </tr>
                 ))}
+                {/* Filas de eventos extraoficiales (solo si no hay filtro de jornada) */}
+                {jornada === 'todas' && eventosExtra.map(ev => (
+                  <tr key={ev.id} style={{ background: '#fffbeb' }}>
+                    <td style={{ position: 'sticky', left: 0, background: '#fffbeb', zIndex: 5 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Star size={12} style={{ color: '#b45309', flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>{ev.nombre}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                        Extraoficial · {new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{
+                        background: '#fef9c3', color: '#b45309',
+                        padding: '2px 8px', borderRadius: 20, fontSize: 12, fontWeight: 700
+                      }}>
+                        +{ev.puntos} pts
+                      </span>
+                    </td>
+                    {participantesOrdenados.map(p => (
+                      <td key={p.id} style={{ textAlign: 'center' }}>
+                        {ev.ganadores.includes(p.id) ? (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            background: '#fef9c3', color: '#b45309', borderRadius: '50%',
+                            width: 26, height: 26, fontSize: 13, fontWeight: 800
+                          }}>
+                            +{ev.puntos}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--gray-200)', fontSize: 18 }}>—</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
                 {/* Fila de totales */}
                 <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
                   <td style={{ position: 'sticky', left: 0, background: 'var(--gray-50)', zIndex: 5 }}>
@@ -224,12 +274,19 @@ export default function Visor() {
                   <td />
                   {participantesOrdenados.map((p, i) => (
                     <td key={p.id} style={{ textAlign: 'center' }}>
-                      <span style={{
-                        fontSize: 16, fontWeight: 800,
-                        color: i === 0 ? '#854d0e' : 'var(--primary)'
-                      }}>
-                        {rankingMap[p.id]?.pts ?? 0}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <span style={{
+                          fontSize: 16, fontWeight: 800,
+                          color: i === 0 ? '#854d0e' : 'var(--primary)'
+                        }}>
+                          {rankingMap[p.id]?.pts ?? 0}
+                        </span>
+                        {(rankingMap[p.id]?.ptsExtra ?? 0) > 0 && (
+                          <span style={{ fontSize: 10, color: '#b45309', fontWeight: 600 }}>
+                            ⭐+{rankingMap[p.id].ptsExtra}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   ))}
                 </tr>

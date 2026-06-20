@@ -20,15 +20,17 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: parts }, { data: partidos }, { data: prons }] = await Promise.all([
+    const [{ data: parts }, { data: partidos }, { data: prons }, { data: eventoGans }] = await Promise.all([
       supabase.from('participantes').select('*'),
       supabase.from('partidos').select('*').order('fecha', { ascending: false }),
       supabase.from('pronosticos').select('*'),
+      supabase.from('evento_ganadores').select('participante_id, eventos_extra(puntos)'),
     ])
 
     const participantes = parts ?? []
     const todosPartidos = partidos ?? []
     const todosProns = prons ?? []
+    const todosEventoGans = eventoGans ?? []
 
     const rank = participantes.map(p => {
       const misProns = todosProns.filter(pr => pr.participante_id === p.id)
@@ -42,7 +44,11 @@ export default function Dashboard() {
         else if (puntos === 1) tendencias++
         else errores++
       })
-      return { ...p, pts, exactos, tendencias, errores, pronTotal: misProns.length }
+      const ptsExtra = todosEventoGans
+        .filter(eg => eg.participante_id === p.id)
+        .reduce((sum, eg) => sum + (eg.eventos_extra?.puntos ?? 0), 0)
+      pts += ptsExtra
+      return { ...p, pts, exactos, tendencias, errores, ptsExtra, pronTotal: misProns.length }
     }).sort((a, b) => b.pts - a.pts || b.exactos - a.exactos)
 
     setRanking(rank)
@@ -138,6 +144,9 @@ export default function Dashboard() {
                         <span style={{ fontWeight: 800, fontSize: 18, color: i === 0 ? '#854d0e' : 'var(--gray-800)' }}>
                           {p.pts}
                         </span>
+                        {p.ptsExtra > 0 && (
+                          <div style={{ fontSize: 10, color: '#b45309', fontWeight: 600 }}>⭐+{p.ptsExtra}</div>
+                        )}
                       </td>
                       <td style={{ textAlign: 'center', color: '#854d0e', fontWeight: 700 }} className="hide-mobile">{p.exactos}</td>
                       <td style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }} className="hide-mobile">{p.tendencias}</td>

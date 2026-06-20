@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Trophy, Users, Calendar, Target, BarChart2, Lock, LockOpen, LogOut } from 'lucide-react'
+import { Trophy, Users, Calendar, Target, BarChart2, Star, Lock, LockOpen, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Layout() {
@@ -33,6 +33,11 @@ export default function Layout() {
           <NavLink to="/pronosticos" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <Target size={15} />
             Pronósticos
+          </NavLink>
+          <NavLink to="/eventos" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            <Star size={15} />
+            Eventos
+            {!isAdmin && <Lock size={10} style={{ color: 'var(--gray-400)', marginLeft: 1 }} />}
           </NavLink>
           <NavLink to="/visor" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <BarChart2 size={15} />
@@ -93,6 +98,13 @@ export default function Layout() {
             Pronóst.
           </NavLink>
 
+          <NavLink to="/eventos" className={({ isActive }) => `bottom-nav-link${isActive ? ' active' : ''}`}>
+            <span className="bnl-icon">
+              <Star size={20} />
+              {!isAdmin && <span className="lock-dot" />}
+            </span>
+            Eventos
+          </NavLink>
           <NavLink to="/visor" className={({ isActive }) => `bottom-nav-link${isActive ? ' active' : ''}`}>
             <span className="bnl-icon"><BarChart2 size={20} /></span>
             Visor
