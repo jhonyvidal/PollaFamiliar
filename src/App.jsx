@@ -17,7 +17,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="participantes" element={<AdminGuard><Participantes /></AdminGuard>} />
             <Route path="partidos" element={<AdminGuard><Partidos /></AdminGuard>} />
-            <Route path="pronosticos" element={<Pronosticos />} />
+            <Route path="pronosticos" element={<AdminGuard><Pronosticos /></AdminGuard>} />
             <Route path="visor" element={<Visor />} />
           </Route>
         </Routes>
