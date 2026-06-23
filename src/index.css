@@ -47,7 +47,7 @@ body {
   background: white;
   border-bottom: 1px solid var(--gray-200);
   padding: 0 20px;
-  height: var(--topbar-h);
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
