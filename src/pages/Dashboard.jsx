@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, calcularPuntos } from '../lib/supabase'
+import { supabase, calcularPuntos, calcularTipoResultado } from '../lib/supabase'
 import { Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -20,17 +20,20 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: parts }, { data: partidos }, { data: prons }, { data: eventoGans }] = await Promise.all([
+    const [{ data: parts }, { data: partidos }, { data: prons }, { data: eventoGans }, { data: fasesPts }] = await Promise.all([
       supabase.from('participantes').select('*'),
       supabase.from('partidos').select('*').order('fecha', { ascending: false }),
       supabase.from('pronosticos').select('*'),
       supabase.from('evento_ganadores').select('participante_id, eventos_extra(puntos)'),
+      supabase.from('fases_puntos').select('*'),
     ])
 
     const participantes = parts ?? []
     const todosPartidos = partidos ?? []
     const todosProns = prons ?? []
     const todosEventoGans = eventoGans ?? []
+    const faseConfig = {}
+    ;(fasesPts ?? []).forEach(fp => { faseConfig[fp.fase] = fp })
 
     const rank = participantes.map(p => {
       const misProns = todosProns.filter(pr => pr.participante_id === p.id)
@@ -38,10 +41,13 @@ export default function Dashboard() {
       misProns.forEach(pr => {
         const partido = todosPartidos.find(pa => pa.id === pr.partido_id)
         if (!partido || partido.estado !== 'finalizado') return
-        const puntos = calcularPuntos(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante)
+        const cfg = faseConfig[partido.fase] ?? { puntos_exacto: 3, puntos_tendencia: 1 }
+        const tipo = calcularTipoResultado(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante)
+        if (tipo === null) return
+        const puntos = calcularPuntos(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante, cfg.puntos_exacto, cfg.puntos_tendencia)
         pts += puntos
-        if (puntos === 3) exactos++
-        else if (puntos === 1) tendencias++
+        if (tipo === 'exacto') exactos++
+        else if (tipo === 'tendencia') tendencias++
         else errores++
       })
       const ptsExtra = todosEventoGans

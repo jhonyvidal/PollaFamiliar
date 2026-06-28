@@ -127,3 +127,117 @@ $$ language plpgsql;
 create or replace trigger trigger_actualizar_puntos
   after update on partidos
   for each row execute function actualizar_puntos_partido();
+
+-- ============================================
+-- MIGRACIÓN: Sistema de fases con puntos dinámicos
+-- ============================================
+
+-- Agregar campo fase a partidos (null para partidos existentes)
+alter table partidos add column if not exists fase text;
+
+-- Tabla de configuración de puntos por fase
+create table if not exists fases_puntos (
+  id uuid primary key default gen_random_uuid(),
+  fase text not null unique,
+  label text not null,
+  puntos_exacto integer not null default 3,
+  puntos_tendencia integer not null default 1,
+  orden integer not null default 0,
+  created_at timestamptz default now()
+);
+
+-- RLS para fases_puntos
+alter table fases_puntos enable row level security;
+create policy "acceso_publico_fases_puntos"
+  on fases_puntos for all using (true) with check (true);
+
+-- Datos iniciales de configuración de fases
+insert into fases_puntos (fase, label, puntos_exacto, puntos_tendencia, orden) values
+  ('grupos',        'Fase de grupos',        3,  1, 1),
+  ('dieciseisavos', 'Dieciseisavos de final', 5,  2, 2),
+  ('octavos',       'Octavos de final',       5,  2, 3),
+  ('cuartos',       'Cuartos de final',       10, 3, 4),
+  ('semifinal',     'Semifinal',              15, 5, 5),
+  ('tercer_puesto', 'Tercer puesto',          15, 5, 6),
+  ('final',         'Final',                  20, 7, 7)
+on conflict (fase) do nothing;
+
+-- Actualizar función calcular_puntos para usar configuración dinámica de fases
+create or replace function calcular_puntos(
+  p_goles_local_real integer,
+  p_goles_visitante_real integer,
+  p_goles_local_pronostico integer,
+  p_goles_visitante_pronostico integer,
+  p_fase text default null
+) returns integer as $$
+declare
+  resultado_real text;
+  resultado_pronostico text;
+  v_puntos_exacto integer := 3;
+  v_puntos_tendencia integer := 1;
+begin
+  -- Obtener puntos configurados para la fase
+  if p_fase is not null then
+    select puntos_exacto, puntos_tendencia
+    into v_puntos_exacto, v_puntos_tendencia
+    from fases_puntos
+    where fase = p_fase;
+
+    if not found then
+      v_puntos_exacto := 3;
+      v_puntos_tendencia := 1;
+    end if;
+  end if;
+
+  -- Resultado exacto
+  if p_goles_local_real = p_goles_local_pronostico
+     and p_goles_visitante_real = p_goles_visitante_pronostico then
+    return v_puntos_exacto;
+  end if;
+
+  -- Calcular resultado (G=gana local, E=empate, P=pierde local)
+  if p_goles_local_real > p_goles_visitante_real then
+    resultado_real := 'G';
+  elsif p_goles_local_real = p_goles_visitante_real then
+    resultado_real := 'E';
+  else
+    resultado_real := 'P';
+  end if;
+
+  if p_goles_local_pronostico > p_goles_visitante_pronostico then
+    resultado_pronostico := 'G';
+  elsif p_goles_local_pronostico = p_goles_visitante_pronostico then
+    resultado_pronostico := 'E';
+  else
+    resultado_pronostico := 'P';
+  end if;
+
+  -- Resultado correcto (tendencia)
+  if resultado_real = resultado_pronostico then
+    return v_puntos_tendencia;
+  end if;
+
+  return 0;
+end;
+$$ language plpgsql;
+
+-- Actualizar trigger para pasar la fase del partido al calcular puntos
+create or replace function actualizar_puntos_partido()
+returns trigger as $$
+begin
+  if NEW.estado = 'finalizado'
+     and NEW.goles_local is not null
+     and NEW.goles_visitante is not null then
+    update pronosticos
+    set puntos = calcular_puntos(
+      NEW.goles_local,
+      NEW.goles_visitante,
+      pronosticos.goles_local,
+      pronosticos.goles_visitante,
+      NEW.fase
+    )
+    where partido_id = NEW.id;
+  end if;
+  return NEW;
+end;
+$$ language plpgsql;

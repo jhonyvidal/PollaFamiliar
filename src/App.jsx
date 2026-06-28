@@ -8,6 +8,7 @@ import Partidos from './pages/Partidos'
 import Pronosticos from './pages/Pronosticos'
 import Visor from './pages/Visor'
 import EventosExtra from './pages/EventosExtra'
+import ConfigFases from './pages/ConfigFases'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="partidos" element={<AdminGuard><Partidos /></AdminGuard>} />
             <Route path="pronosticos" element={<AdminGuard><Pronosticos /></AdminGuard>} />
             <Route path="eventos" element={<AdminGuard><EventosExtra /></AdminGuard>} />
+            <Route path="config-fases" element={<AdminGuard><ConfigFases /></AdminGuard>} />
             <Route path="visor" element={<Visor />} />
           </Route>
         </Routes>

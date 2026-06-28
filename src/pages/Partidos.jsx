@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { Plus, Pencil, Trash2, Calendar, CheckCircle, X, Clock } from 'lucide-react'
 import Toast from '../components/Toast'
+import { FASES, FASE_LABEL } from '../constants/phases'
 
 function fmt(fecha) {
   return new Date(fecha).toLocaleString('es-CO', {
@@ -16,18 +17,20 @@ function ModalPartido({ initial, onClose, onSave, saving }) {
     equipo_visitante: initial?.equipo_visitante ?? '',
     fecha: initial?.fecha ? initial.fecha.slice(0, 16) : '',
     jornada: initial?.jornada ?? 1,
+    fase: initial?.fase ?? '',
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (!form.equipo_local.trim() || !form.equipo_visitante.trim() || !form.fecha) return
+    if (!form.equipo_local.trim() || !form.equipo_visitante.trim() || !form.fecha || !form.fase) return
     onSave({
       equipo_local: form.equipo_local.trim(),
       equipo_visitante: form.equipo_visitante.trim(),
       fecha: new Date(form.fecha).toISOString(),
       jornada: Number(form.jornada),
+      fase: form.fase,
     })
   }
 
@@ -59,6 +62,13 @@ function ModalPartido({ initial, onClose, onSave, saving }) {
                 <label className="form-label">Jornada</label>
                 <input className="form-input" type="number" min="1" value={form.jornada} onChange={e => set('jornada', e.target.value)} />
               </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Fase del partido *</label>
+              <select className="form-select" value={form.fase} onChange={e => set('fase', e.target.value)} required>
+                <option value="">— Seleccionar fase —</option>
+                {FASES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+              </select>
             </div>
           </div>
           <div className="modal-footer">
@@ -278,6 +288,10 @@ export default function Partidos() {
                     <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>J{p.jornada}</span>
                     <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>·</span>
                     <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{fmt(p.fecha)}</span>
+                    {p.fase && <>
+                      <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>·</span>
+                      <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>{FASE_LABEL[p.fase] ?? p.fase}</span>
+                    </>}
                     <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>·</span>
                     {p.estado === 'finalizado'
                       ? <span className="badge badge-done" style={{ fontSize: 11 }}><CheckCircle size={10} /> Finalizado</span>

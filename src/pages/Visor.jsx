@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, calcularPuntos } from '../lib/supabase'
+import { supabase, calcularPuntos, calcularTipoResultado } from '../lib/supabase'
 import { BarChart2, CheckCircle, Clock, Star } from 'lucide-react'
 
 function getInitials(nombre) {
   return nombre.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
-function PtsCell({ puntos }) {
-  if (puntos === null || puntos === undefined) return <span style={{ color: 'var(--gray-300)', fontWeight: 500 }}>—</span>
-  const bg = puntos === 3 ? '#fef9c3' : puntos === 1 ? 'var(--primary-light)' : 'var(--danger-light)'
-  const color = puntos === 3 ? '#854d0e' : puntos === 1 ? 'var(--primary-dark)' : 'var(--danger)'
+function PtsCell({ puntos, tipo }) {
+  if (puntos === null || puntos === undefined || tipo === null) return <span style={{ color: 'var(--gray-300)', fontWeight: 500 }}>—</span>
+  const bg = tipo === 'exacto' ? '#fef9c3' : tipo === 'tendencia' ? 'var(--primary-light)' : 'var(--danger-light)'
+  const color = tipo === 'exacto' ? '#854d0e' : tipo === 'tendencia' ? 'var(--primary-dark)' : 'var(--danger)'
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -26,17 +26,19 @@ export default function Visor() {
   const [partidos, setPartidos] = useState([])
   const [pronosticos, setPronosticos] = useState([])
   const [eventosExtra, setEventosExtra] = useState([])
+  const [faseConfig, setFaseConfig] = useState({})
   const [loading, setLoading] = useState(true)
   const [jornada, setJornada] = useState('todas')
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: parts }, { data: pars }, { data: prons }, { data: evs }, { data: gans }] = await Promise.all([
+    const [{ data: parts }, { data: pars }, { data: prons }, { data: evs }, { data: gans }, { data: fasesPts }] = await Promise.all([
       supabase.from('participantes').select('*').order('nombre'),
       supabase.from('partidos').select('*').order('fecha'),
       supabase.from('pronosticos').select('*'),
       supabase.from('eventos_extra').select('*').order('fecha'),
       supabase.from('evento_ganadores').select('evento_id, participante_id'),
+      supabase.from('fases_puntos').select('*'),
     ])
     setParticipantes(parts ?? [])
     setPartidos(pars ?? [])
@@ -47,6 +49,9 @@ export default function Visor() {
         ganadores: (gans ?? []).filter(g => g.evento_id === ev.id).map(g => g.participante_id),
       }))
     )
+    const cfg = {}
+    ;(fasesPts ?? []).forEach(fp => { cfg[fp.fase] = fp })
+    setFaseConfig(cfg)
     setLoading(false)
   }, [])
 
@@ -61,10 +66,13 @@ export default function Visor() {
       .forEach(pr => {
         const partido = partidos.find(pa => pa.id === pr.partido_id)
         if (!partido || partido.estado !== 'finalizado') return
-        const puntos = calcularPuntos(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante)
+        const cfg = faseConfig[partido.fase] ?? { puntos_exacto: 3, puntos_tendencia: 1 }
+        const tipo = calcularTipoResultado(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante)
+        if (tipo === null) return
+        const puntos = calcularPuntos(partido.goles_local, partido.goles_visitante, pr.goles_local, pr.goles_visitante, cfg.puntos_exacto, cfg.puntos_tendencia)
         pts += puntos
-        if (puntos === 3) exactos++
-        if (puntos === 1) tendencias++
+        if (tipo === 'exacto') exactos++
+        if (tipo === 'tendencia') tendencias++
       })
     const ptsExtra = eventosExtra
       .filter(ev => ev.ganadores.includes(p.id))
@@ -208,8 +216,12 @@ export default function Visor() {
                     </td>
                     {participantesOrdenados.map(p => {
                       const pron = getPron(p.id, partido.id)
-                      const puntos = partido.estado === 'finalizado' && pron
-                        ? calcularPuntos(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante)
+                      const cfg = faseConfig[partido.fase] ?? { puntos_exacto: 3, puntos_tendencia: 1 }
+                      const tipo = partido.estado === 'finalizado' && pron
+                        ? calcularTipoResultado(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante)
+                        : null
+                      const puntos = tipo !== null
+                        ? calcularPuntos(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante, cfg.puntos_exacto, cfg.puntos_tendencia)
                         : null
 
                       return (
@@ -219,7 +231,7 @@ export default function Visor() {
                               <span style={{ fontWeight: 700, fontSize: 13 }}>
                                 {pron.goles_local}-{pron.goles_visitante}
                               </span>
-                              <PtsCell puntos={puntos} />
+                              <PtsCell puntos={puntos} tipo={tipo} />
                             </div>
                           ) : (
                             <span style={{ color: 'var(--gray-200)', fontSize: 18 }}>—</span>

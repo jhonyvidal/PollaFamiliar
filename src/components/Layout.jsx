@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Trophy, Users, Calendar, Target, BarChart2, Star, Lock, LockOpen, LogOut } from 'lucide-react'
+import { Trophy, Users, Calendar, Target, BarChart2, Star, Lock, LockOpen, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Layout() {
@@ -43,6 +43,12 @@ export default function Layout() {
             <BarChart2 size={15} />
             Visor
           </NavLink>
+          {isAdmin && (
+            <NavLink to="/config-fases" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <Settings size={15} />
+              Fases
+            </NavLink>
+          )}
 
           <div style={{ width: 1, background: 'var(--gray-200)', height: 22, margin: '0 6px' }} />
 

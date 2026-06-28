@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, calcularPuntos } from '../lib/supabase'
+import { supabase, calcularPuntos, calcularTipoResultado } from '../lib/supabase'
 import { Target, Save, CheckCircle, Clock } from 'lucide-react'
 import Toast from '../components/Toast'
 
@@ -7,17 +7,18 @@ function getInitials(nombre) {
   return nombre.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
-function PtsIndicator({ pts }) {
-  if (pts === null || pts === undefined) return <span className="pts-badge pts-null">-</span>
-  if (pts === 3) return <span className="pts-badge pts-3">3</span>
-  if (pts === 1) return <span className="pts-badge pts-1">1</span>
-  return <span className="pts-badge pts-0">0</span>
+function PtsIndicator({ pts, tipo }) {
+  if (pts === null || pts === undefined || tipo === null) return <span className="pts-badge pts-null">-</span>
+  if (tipo === 'error') return <span className="pts-badge pts-0">0</span>
+  if (tipo === 'exacto') return <span className="pts-badge pts-3">{pts}</span>
+  return <span className="pts-badge pts-1">{pts}</span>
 }
 
 export default function Pronosticos() {
   const [participantes, setParticipantes] = useState([])
   const [partidos, setPartidos] = useState([])
   const [pronosticos, setPronosticos] = useState([]) // {participante_id, partido_id, goles_local, goles_visitante, puntos}
+  const [faseConfig, setFaseConfig] = useState({})
   const [selectedPart, setSelectedPart] = useState('')
   const [draft, setDraft] = useState({}) // {partido_id: {gl, gv}}
   const [loading, setLoading] = useState(true)
@@ -27,14 +28,18 @@ export default function Pronosticos() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: parts }, { data: pars }, { data: prons }] = await Promise.all([
+    const [{ data: parts }, { data: pars }, { data: prons }, { data: fasesPts }] = await Promise.all([
       supabase.from('participantes').select('*').order('nombre'),
       supabase.from('partidos').select('*').order('fecha'),
       supabase.from('pronosticos').select('*'),
+      supabase.from('fases_puntos').select('*'),
     ])
     setParticipantes(parts ?? [])
     setPartidos(pars ?? [])
     setPronosticos(prons ?? [])
+    const cfg = {}
+    ;(fasesPts ?? []).forEach(fp => { cfg[fp.fase] = fp })
+    setFaseConfig(cfg)
     setLoading(false)
   }, [])
 
@@ -193,8 +198,12 @@ export default function Pronosticos() {
                         const pron = pronosticos.find(p => p.participante_id === selectedPart && p.partido_id === partido.id)
                         const draftVal = draft[partido.id] ?? {}
                         const finalizado = partido.estado === 'finalizado'
-                        const ptsCalculados = finalizado && pron
-                          ? calcularPuntos(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante)
+                        const cfg = faseConfig[partido.fase] ?? { puntos_exacto: 3, puntos_tendencia: 1 }
+                        const tipoCalculado = finalizado && pron
+                          ? calcularTipoResultado(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante)
+                          : null
+                        const ptsCalculados = tipoCalculado !== null
+                          ? calcularPuntos(partido.goles_local, partido.goles_visitante, pron.goles_local, pron.goles_visitante, cfg.puntos_exacto, cfg.puntos_tendencia)
                           : null
 
                         return (
@@ -206,7 +215,7 @@ export default function Pronosticos() {
                                   : <><Clock size={11} style={{ marginRight: 4 }} />{new Date(partido.fecha).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</>
                                 }
                               </span>
-                              <PtsIndicator pts={ptsCalculados} />
+                              <PtsIndicator pts={ptsCalculados} tipo={tipoCalculado} />
                             </div>
                             <div className="pron-card-body">
                               <span className="pron-team home">{partido.equipo_local}</span>
